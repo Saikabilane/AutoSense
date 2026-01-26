@@ -1,92 +1,97 @@
 import streamlit as st
 import pandas as pd
+import matplotlib.pyplot as plt
 
-# ------------------------------
-# Page Config
-# ------------------------------
-st.set_page_config(page_title="AutoSense Dashboard", layout="wide")
+# ----------------------------
+# Load CSV Files
+# ----------------------------
+telemetry_file = "telemetry.csv"
+calendar_file = "AutoSense_ServiceCalendar.csv"
 
-st.title("🚗 AutoSense – Predictive Maintenance Dashboard")
+telemetry_df = pd.read_csv(telemetry_file)
+calendar_df = pd.read_csv(calendar_file)
 
-# Load CSV files
-calendar_file = "../AutoSense_ServiceCalendar.csv"
-telemetry_file = "../telemetry.csv"
-
-# ------------------------------
+# ----------------------------
 # Sidebar Navigation
-# ------------------------------
+# ----------------------------
+st.sidebar.title("🚗 AutoSense Dashboard")
 page = st.sidebar.radio(
-    "Select Dashboard View",
-    ["👤 Vehicle Owner", "🏭 Manufacturer View", "🏢 Service Center View"]
+    "Select Portal",
+    ["User Portal", "Manufacturer Portal", "Service Center Portal"]
 )
 
-# ------------------------------
-# PAGE 1 – Vehicle Owner
-# ------------------------------
-if page == "👤 Vehicle Owner":
-    st.header("👤 Vehicle Owner Portal")
+# ----------------------------
+# PAGE 1 — USER PORTAL
+# ----------------------------
+if page == "User Portal":
+    st.title("👤 Vehicle Owner Portal")
 
-    vehicle_id = st.text_input("Enter Vehicle ID", "VN001")
+    st.subheader("Live Vehicle Health Prediction")
 
-    st.subheader("📅 Upcoming Service Slots")
+    # Show last telemetry row
+    latest = telemetry_df.tail(1)
 
-    df_cal = pd.read_csv(calendar_file)
+    st.write("### Latest Telemetry Data")
+    st.dataframe(latest)
 
-    user_slots = df_cal[df_cal["VehicleID"] == vehicle_id]
+    # Example Prediction Output
+    st.write("### Detected Condition")
+    st.success("Battery Issue Detected ⚠️")
 
-    if user_slots.empty:
-        st.warning("No service slot booked yet.")
-    else:
-        st.success("Your booked service slots:")
-        st.dataframe(user_slots)
+    st.write("### Recommended Service Slots")
 
-    st.subheader("🔍 Vehicle Status")
-    st.info("Failure Risk Prediction + Call Alert will be shown here after Master Agent execution.")
+    free_slots = calendar_df[calendar_df["Status"] == "FREE"].head(3)
 
-# ------------------------------
-# PAGE 2 – Manufacturer View
-# ------------------------------
-elif page == "🏭 Manufacturer View":
-    st.header("🏭 Manufacturer Fault Analytics")
+    st.dataframe(free_slots)
 
-    st.subheader("Most Common Fault Types (Demo Data)")
+    st.info("Customer Engagement Call Triggered 📞")
+    st.write("Slot will be frozen once user confirms.")
 
-    fault_data = {
-        "Fault Type": ["Battery Issue", "Engine Overheat", "Brake Failure"],
-        "Count": [12, 8, 5]
-    }
+# ----------------------------
+# PAGE 2 — MANUFACTURER PORTAL
+# ----------------------------
+elif page == "Manufacturer Portal":
+    st.title("🏭 Manufacturer Fault Analytics")
 
-    df_fault = pd.DataFrame(fault_data)
+    st.subheader("Fault Trends & Most Repaired Parts")
 
-    st.dataframe(df_fault)
+    # Dummy Fault Data (replace with feedback agent output)
+    fault_data = pd.DataFrame({
+        "Component": ["Battery", "Engine", "Coolant", "Brakes"],
+        "FaultCount": [15, 10, 6, 4]
+    })
 
-    st.subheader("📊 Top Repaired Parts")
-    st.bar_chart(df_fault.set_index("Fault Type"))
+    st.write("### Most Frequently Failing Components")
+    st.dataframe(fault_data)
 
-    st.info("This report helps manufacturers detect recurring faults and improve design.")
+    st.write("### Fault Distribution Chart")
 
-# ------------------------------
-# PAGE 3 – Service Center View
-# ------------------------------
-elif page == "🏢 Service Center View":
-    st.header("🏢 Service Center Monitoring")
+    plt.figure()
+    plt.bar(fault_data["Component"], fault_data["FaultCount"])
+    st.pyplot(plt)
 
-    df_cal = pd.read_csv(calendar_file)
+    st.info("Future Scope: RCA/CAPA Reports & Manufacturer Alerts")
 
-    st.subheader("📌 Slot Booking Overview")
+# ----------------------------
+# PAGE 3 — SERVICE CENTER PORTAL
+# ----------------------------
+elif page == "Service Center Portal":
+    st.title("🏢 Service Center Monitoring")
 
-    booked = df_cal[df_cal["Status"] == "BOOKED"]
-    free = df_cal[df_cal["Status"] == "FREE"]
+    st.subheader("Service Calendar Overview")
 
-    col1, col2 = st.columns(2)
+    st.write("### Full Slot Calendar")
+    st.dataframe(calendar_df.head(15))
 
-    with col1:
-        st.metric("Total Booked Slots", len(booked))
+    st.subheader("Booking Summary")
 
-    with col2:
-        st.metric("Total Free Slots", len(free))
+    booked = calendar_df[calendar_df["Status"] == "BOOKED"]
+    free = calendar_df[calendar_df["Status"] == "FREE"]
 
-    st.subheader("📅 Full Service Calendar")
-    st.dataframe(df_cal)
+    st.metric("Booked Slots", len(booked))
+    st.metric("Free Slots", len(free))
 
-    st.success("Service managers can monitor workload and upcoming bookings here.")
+    st.write("### Engagement Status")
+    st.success("Calls placed successfully for urgent faults")
+
+    st.info("Future Scope: Workload Peaks + Satisfaction Monitoring")
